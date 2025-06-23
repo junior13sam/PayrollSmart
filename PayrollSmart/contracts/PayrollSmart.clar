@@ -234,6 +234,36 @@
   )
 )
 
+;; Batch process payments for multiple employees with enhanced validation and reporting
+(define-public (batch-process-payments (employee-ids (list 50 uint)))
+  (let ((current-balance (var-get contract-balance))
+        (total-payment-amount (fold calculate-total-payment-amount employee-ids u0)))
+    (begin
+      (asserts! (is-authorized tx-sender) ERR-UNAUTHORIZED)
+      (asserts! (not (var-get contract-paused)) ERR-UNAUTHORIZED)
+      (asserts! (>= current-balance total-payment-amount) ERR-INSUFFICIENT-FUNDS)
+      
+      ;; Process each payment and collect results
+      (let ((payment-results (map process-single-payment employee-ids))
+            (successful-payments (len (filter is-payment-successful payment-results)))
+            (total-paid (fold sum-successful-payments payment-results u0)))
+        
+        ;; Update monthly budget tracking
+        (var-set monthly-payroll-budget (+ (var-get monthly-payroll-budget) total-paid))
+        
+        ;; Return comprehensive batch processing results
+        (ok {
+          total-employees-processed: (len employee-ids),
+          successful-payments: successful-payments,
+          total-amount-paid: total-paid,
+          remaining-balance: (- (var-get contract-balance) total-paid),
+          processing-block: block-height
+        })
+      )
+    )
+  )
+)
+
 ;; Helper function to calculate total payment amount for batch processing
 (define-private (calculate-total-payment-amount (employee-id uint) (acc uint))
   (match (map-get? employees { employee-id: employee-id })
