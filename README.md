@@ -1,5 +1,7 @@
-PayrollSmart
+PayrollSmart: 
 ============
+
+A contract that automates payroll and contractor payments on Stacks via a robust Clarity smart contract
 
 Table of Contents
 -----------------
